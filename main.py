@@ -27,8 +27,9 @@ print(df.describe())
 print(df.shape)
 print(df.head()) 
 
-print("debut")
-import pandas as pd
-print("pandas ok")
-from scipy.io import arff
-print("scipy ok") 
+# Séparer les attributs (X) et la classe à prédire (y)
+X = df.drop(columns=["class"]).values
+y = df["class"].values
+
+print(X.shape)
+print(y.shape)
