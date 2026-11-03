@@ -10,7 +10,7 @@ import numpy as np                  # calculs
 import matplotlib.pyplot as plt     # dessin de la courbe
 from scipy.io import arff           # lecture du fichier .arff
 
-GRAINE = 7                          # graine du hasard (à citer dans le rapport)
+GRAINE = 7                          
 
 
 # =====================================================================
