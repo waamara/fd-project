@@ -56,4 +56,26 @@ X_train = (X_train - mu) / sigma
 X_test = (X_test - mu) / sigma
 
 print(X_train.mean(axis=0).round(2))
-print(X_train.std(axis=0).round(2))
+print(X_train.std(axis=0).round(2)) 
+
+def knn_predict(X_train, y_train, X_test, k):
+    predictions = []
+    for x in X_test:
+        # distance euclidienne entre ce patient de test et tous ceux de l'apprentissage
+        distances = np.sqrt(((X_train - x) ** 2).sum(axis=1))
+        # numéros des k patients les plus proches
+        voisins = np.argsort(distances)[:k]
+        # classes de ces k voisins
+        classes = y_train[voisins]
+        # vote majoritaire
+        vote = np.bincount(classes).argmax()
+        predictions.append(vote)
+    return np.array(predictions)
+
+
+# Appliquer k-NN pour k = 1 à 10
+preds = {}
+for k in range(1, 11):
+    preds[k] = knn_predict(X_train, y_train, X_test, k)
+    exactitude = (preds[k] == y_test).mean()
+    print("k =", k, "| exactitude =", round(exactitude, 3))
