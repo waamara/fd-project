@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from scipy.io import arff
 
 data, meta = arff.loadarff("diabetes.arff")
@@ -32,4 +33,27 @@ X = df.drop(columns=["class"]).values
 y = df["class"].values
 
 print(X.shape)
-print(y.shape)
+print(y.shape) 
+
+
+
+
+# --- PROVISOIRE : à remplacer par le partitionnement d'Ines ---
+rng = np.random.default_rng(7)
+indices = rng.permutation(len(X))
+n_train = int(0.8 * len(X))
+
+X_train, y_train = X[indices[:n_train]], y[indices[:n_train]]
+X_test, y_test = X[indices[n_train:]], y[indices[n_train:]]
+# ---------------------------------------------------------------
+
+print(X_train.shape, X_test.shape)
+
+# Normalisation (z-score), calculée sur l'apprentissage seulement
+mu = X_train.mean(axis=0)
+sigma = X_train.std(axis=0)
+X_train = (X_train - mu) / sigma
+X_test = (X_test - mu) / sigma
+
+print(X_train.mean(axis=0).round(2))
+print(X_train.std(axis=0).round(2))
