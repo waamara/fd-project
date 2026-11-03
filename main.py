@@ -5,12 +5,17 @@
 # Ensemble : courbe de précision + meilleur k
 # =====================================================================
 
-import pandas as pd                 # tableaux
-import numpy as np                  # calculs
-import matplotlib.pyplot as plt     # dessin de la courbe
+import pandas as pd                
+import numpy as np                  
+import matplotlib.pyplot as plt     
 from scipy.io import arff           # lecture du fichier .arff
 
+<<<<<<< HEAD
 GRAINE = 7                          
+=======
+GRAINE = 7                          # graine du hasard 
+
+>>>>>>> 5f62e5a162a1b875bd0c2afacd3a3228d35aa8b7
 
 
 # =====================================================================
@@ -39,6 +44,7 @@ print("Patients par classe :")
 print(df["class"].value_counts())
 
 # X = les 8 attributs, y = la classe à prédire
+
 X = df.drop(columns=["class"]).values
 y = df["class"].values
 print("\nX :", X.shape, "| y :", y.shape)
@@ -50,22 +56,50 @@ print("\nX :", X.shape, "| y :", y.shape)
 
 def partitionner(X, y, ratio_train=0.8, graine=GRAINE):
     """Partition aléatoire et SANS remise en apprentissage / test."""
+
+    # Générateur aléatoire initialisé avec la graine (résultats reproductibles)
     rng = np.random.default_rng(graine)
-    indices = rng.permutation(len(X))         # chaque patient apparaît une seule fois
+
+    # Mélange aléatoire des numéros de lignes 0..n-1.
+    # Chaque indice apparaît exactement une fois => tirage SANS remise,
+    # donc aucune ligne ne peut être à la fois dans train et dans test.
+    indices = rng.permutation(len(X))
+
+    # Nombre de lignes d'apprentissage : 80 % du total, arrondi à l'entier inférieur
     n_train = int(ratio_train * len(X))
+
+    # Les n_train premiers indices -> apprentissage, les autres -> test
+    # (80 % / 20 %, ensembles disjoints)
     tr, te = indices[:n_train], indices[n_train:]
+
+    # On sélectionne les lignes de X et y avec les MÊMES indices,
+    # pour que chaque exemple reste associé à sa bonne classe
     return X[tr], y[tr], X[te], y[te]
+
 
 
 X_train, y_train, X_test, y_test = partitionner(X, y)
 print("Apprentissage :", X_train.shape, "| Test :", X_test.shape)
 
-# Normalisation (z-score) : statistiques de l'APPRENTISSAGE seulement
-mu = X_train.mean(axis=0)
-sigma = X_train.std(axis=0)
-sigma[sigma == 0] = 1.0                       # sécurité : évite une division par 0
+# ---------- Normalisation (z-score) ----------
+# Les statistiques sont calculées sur l'APPRENTISSAGE seulement,
+# pour que le test reste réellement "jamais vu" (pas de data leakage)
+
+mu = X_train.mean(axis=0)      # moyenne de chaque colonne (axis=0 : sur les lignes)
+sigma = X_train.std(axis=0)    # écart-type de chaque colonne
+
+# Si une colonne est constante, son écart-type vaut 0 : on le remplace par 1
+# pour éviter une division par zéro (la colonne devient alors simplement 0)
+sigma[sigma == 0] = 1.0
+
+# Formule du z-score : (valeur - moyenne) / écart-type
 X_train = (X_train - mu) / sigma
+
+# Le test est normalisé avec les mêmes mu et sigma que le train
+# (on ne recalcule JAMAIS de statistiques sur le test)
 X_test = (X_test - mu) / sigma
+
+# On standardise les variables pour que celles à grande valeur (ex. insuline) ne dominent pas les autres.
 
 
 # =====================================================================
@@ -78,9 +112,12 @@ def knn_predict(X_train, y_train, X_test, k):
     for x in X_test:
         # distance euclidienne à tous les patients d'apprentissage
         distances = np.sqrt(((X_train - x) ** 2).sum(axis=1))
-        # numéros des k plus proches voisins
+         # np.argsort trie les distances et renvoie les INDICES (pas les valeurs) ;
+        # [:k] garde les k plus petits = les k plus proches voisins
         voisins = np.argsort(distances)[:k]
         # vote majoritaire (égalité -> classe 0)
+         # np.bincount compte les occurrences de chaque classe 
+        # .argmax() renvoie la classe la plus fréquente
         vote = np.bincount(y_train[voisins]).argmax()
         predictions.append(vote)
     return np.array(predictions)
@@ -98,12 +135,13 @@ for k in range(1, 11):
 
 def matrice_confusion(y_vrai, y_pred):
     """Retourne TP, TN, FP, FN (classe positive = 1 = diabétique)."""
-    TP = int(((y_vrai == 1) & (y_pred == 1)).sum())
-    TN = int(((y_vrai == 0) & (y_pred == 0)).sum())
-    FP = int(((y_vrai == 0) & (y_pred == 1)).sum())
-    FN = int(((y_vrai == 1) & (y_pred == 0)).sum())
+    # (y_vrai == 1) donne un tableau de booléens ; & fait un "ET" élément par élément
+    # .sum() compte les True, donc le nombre de cas qui vérifient les deux conditions
+    TP = int(((y_vrai == 1) & (y_pred == 1)).sum())  # vraiment 1 ET prédit 1
+    TN = int(((y_vrai == 0) & (y_pred == 0)).sum())  # vraiment 0 ET prédit 0
+    FP = int(((y_vrai == 0) & (y_pred == 1)).sum())  # vraiment 0 mais prédit 1
+    FN = int(((y_vrai == 1) & (y_pred == 0)).sum())  # vraiment 1 mais prédit 0
     return TP, TN, FP, FN
-
 
 def mesures(TP, TN, FP, FN):
     """Précision, rappel et F-mesure (0 si division par 0)."""
